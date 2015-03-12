@@ -12,6 +12,7 @@
 			<bean ref="myTransform" method="transform" />
 			<to uri="log:ExampleRouter" />
 		</route>
+		
 	</osgi:camelContext>
 	<bean id="myTransform" class="com.aurotech.integration.customer.MyTransform">
 		<property name="prefix" value="${prefix}" />
