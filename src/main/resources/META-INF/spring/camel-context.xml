@@ -3,16 +3,34 @@
 	xmlns:osgix="http://www.springframework.org/schema/osgi-compendium"
 	xmlns:ctx="http://www.springframework.org/schema/context"
 	xsi:schemaLocation=" http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd http://camel.apache.org/schema/osgi http://camel.apache.org/schema/osgi/camel-osgi.xsd http://www.springframework.org/schema/osgi-compendium http://www.springframework.org/schema/osgi-compendium/spring-osgi-compendium.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd ">
+	<bean id="jms" class="org.apache.camel.component.jms.JmsComponent">
+		<property name="connectionFactory">
+			<bean class="org.apache.activemq.ActiveMQConnectionFactory">
+				<property name="brokerURL" value="vm://localhost" />
+				<property name="userName" value="smx" />
+    			<property name="password" value="smx" />
+			</bean>
+		</property>
+	</bean>
 	<osgi:camelContext xmlns="http://camel.apache.org/schema/spring">
 		<route>
 			<from uri="timer://myTimer?fixedRate=true&amp;period=10000" />
 			<to
 				uri="http://localhost:8090/connector/jira/updatedIssues?startDate=1/1/2015&amp;endDate=3/1/2015" />
 			<convertBodyTo type="java.lang.String" charset="UTF-8" />
-			<bean ref="myTransform" method="transform" />
+			<to uri="jms:topic:jira.issues.updates" />
+		</route>
+		<route>
+			<from uri="jms:topic:jira.issues.updates" />
+			<setHeader headerName="CamelHttpMethod">
+				<constant>POST</constant>
+			</setHeader>
+			<to uri="http://localhost:8100/connector/workfront/createOrUpdateTask" />
+		</route>
+		<route>
+			<from uri="jms:topic:jira.issues.updates" />
 			<to uri="log:ExampleRouter" />
 		</route>
-		
 	</osgi:camelContext>
 	<bean id="myTransform" class="com.aurotech.integration.customer.MyTransform">
 		<property name="prefix" value="${prefix}" />
